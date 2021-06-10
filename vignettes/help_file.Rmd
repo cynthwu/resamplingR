@@ -1,0 +1,100 @@
+---
+title: "helpfile"
+author: "Cynthia Wu"
+author: "Tanvi Chiddarwar"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{helpfile}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Brief Description
+
+The *resamplingR* package contains different resampling methods including bootstrapping, k-folds cross validation, and permutation test. The syntax for all of these methods are easy to use and convenient for basic data analysis in R. 
+
+# Reading in data set and libraries
+Before we go through each function in this package, let's first read in the libraries and data set that we will be working with throughout this vignette. We will be using a data set called "cereal" which contains information about the nutritional value of the different types of cereals that are on the market currently. For more information, visit [cereals] (https://www.kaggle.com/crawford/80-cereals/version/2). 
+
+```{r setup}
+library(resamplingR)
+library(tidverse)
+library(modelr)
+library(purrr)
+
+cereals <- read.csv(here::here("Data", "cereal.csv"), stringsAsFactors = FALSE, header = TRUE)
+```
+
+# Functions 
+
+## bootstrap()
+
+The bootstrap() function performs the bootstrap procedure. Afterwards, it uses the bootstrap values to construct a confidence interval for the specified statistic of a variable and then creates a histogram of the distribution of sample estimates with the confidence interval cut offs. The function has the following required arguments:
+
+ * data = a data frame 
+ 
+ * nreps = the number of bootstraps that are to be conducted 
+
+ * var = the name of the variable of interest in the data frame
+ 
+ Moreover, the optional arguments of the function are: 
+ 
+ * stats = the statistic used to perform the bootstrap procedure. The default is mean. 
+ 
+ * lower = the lower quantile of the confidence interval. The default is 0.025. 
+ 
+ * upper = the upper quantile of the confidence interval. The default is 0.975. 
+ 
+Here is an example:
+```{r}
+cereal %>%
+  bootstrap(nreps = 100, var = "calories", stats = mean, lower = 0.005, upper = 0.995)
+```
+
+## kfolds_cross_valid()
+
+The kfolds_cross_valid() function randomly partitions the original sample into K groups of sub-samples. Of the K group of sub-samples, 1 of them is retained to test the regression model while the rest are used to train the model. This process is repeated K times, with each K sub-sample group used once to test the model. From this, it outputs a vector of average mean square errors, which can be used to determine the best model for prediction. Note that all of the arguments in the function are required: 
+
+  * K = the number of folds to be conducted. In other words, the number of times we want to partition our data by. It          is recommended the value of K be 5 or 10, but there is no formal rule on it. 
+
+  * data = a data frame
+
+  * y = the response variable for the regression model 
+  
+  * x = a vector of the explanatory variable(s) for the regression model.  
+  
+The regression model can include more than one explanatory variable and interactions. To indicate this, just create a vector of the explanatory variables of interest in the x argument:
+```{r}
+cereals %>%
+  kfolds_cross_valid(K = 6, y = "calories", x = c("sodium", "seed_type"))
+```
+  
+
+# permutation_test()
+
+The permutation_test() function computes a t-statistic of the observed data and then for a specified amount of permutation of that data in order to determine if a model is statistically significant. This is commonly used when not all assumptions are met and can't use t-test. The function outputs a two-tailed p-value and shows a histogram of the distribution of t-statistics from the test and how it deviates from the original t-statistic. It has four required arguments:
+
+  * data = a data frame
+  
+  * cat_var = the categorical variable of interest. Note that the variable must only have two levels. If it                        doesn't, make sure to filter beforehand. 
+ 
+  * quant_var = the quantitative variable of interest
+ 
+  * nreps = the number of permutations 
+ 
+There is also one optional statement:
+
+  * stats = the statistic used to calculate the data. The default is mean. 
+
+Let's see this function in action:
+```{r}
+cereals %>%
+  permutation_test(cat_var = type, quant_var = calories, nreps = 1000, stats = median)
+```
